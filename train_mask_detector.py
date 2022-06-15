@@ -19,38 +19,48 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-INIT_LR = 1e-4 
+
+INIT_LR = 1e-4
 EPOCHS = 20
 BS = 32
 
-DIRECTORY = r"/Users/redacted/pythonenv/projects/face-mask-detector/dataset"
+DIRECTORY = "C:/Users/HyeonJin/Desktop/dataset"
 CATEGORIES = ["with_mask", "without_mask"]
+
 
 print("[INFO] Loading Image Data...")
 
 data = []
 labels = []
 
-for category in CATEGORIES:
-	path = os.path.join(DIRECTORY, category)
+for category in CATEGORIES: 
+	path = os.path.join(DIRECTORY, category) 
 	for img in os.listdir(path): 
 		img_path = os.path.join(path, img) 
-		image = load_img(img_path, target_size=(224, 224)) 
+		image = load_img(img_path, target_size=(224, 224))
 		image = img_to_array(image)
 		image = preprocess_input(image)
 
 		data.append(image)
 		labels.append(category) 
 
+
+
 lb = LabelBinarizer()
 labels = lb.fit_transform(labels)
 labels = to_categorical(labels)
 
+
+
 data = np.array(data, dtype="float32")
 labels = np.array(labels)
 
+
+
 (trainX, testX, trainY, testY) = train_test_split(data, labels,
 	test_size=0.20, stratify=labels, random_state=42)
+
+
 
 aug = ImageDataGenerator(
 	rotation_range=20,
@@ -62,28 +72,43 @@ aug = ImageDataGenerator(
 	fill_mode="nearest")
 
 
+
 baseModel = MobileNetV2(weights="imagenet", include_top=False,
 	input_tensor=Input(shape=(224, 224, 3)))
 
-headModel = baseModel.output 
-headModel = AveragePooling2D(pool_size=(7, 7))(headModel) 
+
+
+
+headModel = baseModel.output
+headModel = AveragePooling2D(pool_size=(7, 7))(headModel)
 headModel = Flatten(name="flatten")(headModel) 
+
 headModel = Dense(128, activation="relu")(headModel) 
-headModel = Dropout(0.5)(headModel)
-headModel = Dense(2, activation="softmax")(headModel) 
+headModel = Dropout(0.5)(headModel) 
+
+headModel = Dense(2, activation="sigmoid")(headModel) 
+
+
 
 model = Model(inputs=baseModel.input, outputs=headModel)
+
 
 for layer in baseModel.layers:
 	layer.trainable = False
 
-print("[INFO] Compiling Model...")
+
+
 opt = Adam(lr=INIT_LR, decay=INIT_LR / EPOCHS) 
+
 
 model.compile(loss="binary_crossentropy", optimizer=opt,
 	metrics=["accuracy"])
 
-print("[INFO] Training Head...")
+
+
+
+
+
 H = model.fit(
 	aug.flow(trainX, trainY, batch_size=BS),
 	steps_per_epoch=len(trainX) // BS,
@@ -91,11 +116,14 @@ H = model.fit(
 	validation_steps=len(testX) // BS,
 	epochs=EPOCHS)
 
-print("[INFO] Evaluating Network...")
+
+
 predIdxs = model.predict(testX, batch_size=BS)
 
 
+
 predIdxs = np.argmax(predIdxs, axis=1)
+
 
 
 print(classification_report(testY.argmax(axis=1), predIdxs,
@@ -103,8 +131,9 @@ print(classification_report(testY.argmax(axis=1), predIdxs,
 
 
 
-print("[INFO] Saving Mask Detector Model...")
 model.save("mask_detector.model", save_format="h5")
+
+
 
 N = EPOCHS
 plt.style.use("ggplot")
