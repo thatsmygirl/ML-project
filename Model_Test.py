@@ -5,7 +5,7 @@ import cv2
 import winsound
 
 facenet = cv2.dnn.readNet('models/deploy.prototxt', 'models/res10_300x300_ssd_iter_140000.caffemodel')
-model = load_model('MD.h5')
+model = load_model('mask_detector.model.h5')
 
 cap = cv2.VideoCapture(0)
 i = 0
